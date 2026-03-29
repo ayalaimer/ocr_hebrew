@@ -1,0 +1,19 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+# OCR
+PyMuPDF
+pdfplumber
+pytesseract
+Pillow
+python-magic
+
+# Chunking (optional — falls back to word-count estimate if not installed)
+tiktoken
+
+# RAG pipeline
+groq
+python-dotenv
+
+# Vector search
+sentence-transformers
+torch

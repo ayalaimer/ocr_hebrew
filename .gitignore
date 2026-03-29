@@ -1,6 +1,7 @@
 venv/
 __pycache__/
 *.pyc
+.env
 chunks.json
 embeddings_cache.pt
 test_pdf/

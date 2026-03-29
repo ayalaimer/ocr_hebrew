@@ -1,49 +1,87 @@
-from ocr_service import OCRService
+"""
+Protocol Genesis — Pipeline Orchestrator
+Usage: python main.py
+Runs from within the ocr/ directory (where this file lives).
+"""
 import os
+import sys
 
-def main():
-    ocr = OCRService()
+# Pin the working directory to this file's location so all relative
+# paths (test_pdf/, test_files_json/, chunks.json) resolve correctly
+# regardless of where the caller invoked Python from.
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+os.chdir(BASE_DIR)
 
-    # base directory = folder of this file (OCR_Netanel)
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+from dotenv import load_dotenv
+load_dotenv(os.path.join(BASE_DIR, ".env"))
 
-    input_dir = os.path.join(BASE_DIR, "test_pdf")
-    output_dir = os.path.join(BASE_DIR, "test_files_json") # שיניתי את שם התיקייה ל-json
 
-    # safety check
-    if not os.path.exists(input_dir):
-        raise FileNotFoundError(f"Input directory not found: {input_dir}")
+# ==========================================
+#  Pipeline steps (thin wrappers)
+# ==========================================
 
-    os.makedirs(output_dir, exist_ok=True)
+def run_step1_ocr():
+    print("\n" + "=" * 50)
+    print("  Step 1: OCR  (PDF/images → JSON)")
+    print("=" * 50)
+    from run_ocr import main as ocr_main
+    ocr_main()
 
-    # רשימת הסיומות שה-OCR שלנו תומך בהן כרגע
-    supported_extensions = (".pdf", ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp")
 
-    for filename in os.listdir(input_dir):
-        # בדיקה אם הקובץ נתמך (PDF או תמונה)
-        if not filename.lower().endswith(supported_extensions):
-            continue
+def run_step2_chunking():
+    print("\n" + "=" * 50)
+    print("  Step 2: Chunking  (JSON → chunks.json)")
+    print("=" * 50)
+    from chunker import process_directory
+    input_dir = os.path.join(BASE_DIR, "test_files_json")
+    output_file = os.path.join(BASE_DIR, "chunks.json")
+    process_directory(input_dir, output_file)
 
-        file_path = os.path.join(input_dir, filename)
-        print(f"Processing: {filename}...")
 
-        # קריאה לפונקציה החדשה שמחזירה JSON string
-        json_output = ocr.process_file(file_path)
+def run_step3_rag():
+    print("\n" + "=" * 50)
+    print("  Step 3: RAG — Interactive Q&A")
+    print("=" * 50)
+    if not os.getenv("GROQ_API_KEY"):
+        print("Error: GROQ_API_KEY is not set.")
+        print("Create a .env file in this directory with:  GROQ_API_KEY=your_key_here")
+        return
+    from rag_pipeline import run_interactive
+    run_interactive()
 
-        if json_output:
-            # החלפת הסיומת של קובץ הפלט ל-.json
-            # שימוש ב-os.path.splitext עדיף על rsplit למקרים של נקודות בשם הקובץ
-            name_without_ext = os.path.splitext(filename)[0]
-            out_name = name_without_ext + ".json"
-            out_path = os.path.join(output_dir, out_name)
 
-            with open(out_path, "w", encoding="utf-8") as f:
-                f.write(json_output)
-            
-            print(f"Saved JSON: {out_name}")
+# ==========================================
+#  CLI menu
+# ==========================================
 
-        else:
-            print(f"Failed or empty result for: {filename}")
+def print_menu():
+    print("\n" + "=" * 50)
+    print("  Protocol Genesis — Pipeline Menu")
+    print("=" * 50)
+    print("  1.  OCR           (PDF/images → JSON)")
+    print("  2.  Chunk         (JSON → chunks.json)")
+    print("  3.  RAG Q&A       (Interactive mode)")
+    print("  4.  Full pipeline (1 → 2 → 3)")
+    print("  0.  Exit")
+    print("=" * 50)
+
 
 if __name__ == "__main__":
-    main()
+    while True:
+        print_menu()
+        choice = input("Select an option [0-4]: ").strip()
+        if choice == "1":
+            run_step1_ocr()
+        elif choice == "2":
+            run_step2_chunking()
+        elif choice == "3":
+            run_step3_rag()
+        elif choice == "4":
+            run_step1_ocr()
+            run_step2_chunking()
+            run_step3_rag()
+        elif choice == "0":
+            print("Goodbye.")
+            break
+        else:
+            print("Invalid choice, please enter 0–4.")

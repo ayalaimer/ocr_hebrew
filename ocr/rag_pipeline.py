@@ -1,12 +1,14 @@
 import os
 import json
 from groq import Groq
+from dotenv import load_dotenv
 from search_engine import LocalVectorSearch
 
 # ==========================================
 #  הגדרות
 # ==========================================
-GROQ_API_KEY = "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"
+load_dotenv()
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 CHUNKS_FILE = "chunks.json" # הקובץ שנוצר מהצאנקר שלך
 
 class HebrewRAG:
@@ -60,21 +62,24 @@ class HebrewRAG:
 # ==========================================
 #  הרצה
 # ==========================================
-if __name__ == "__main__":
+def run_interactive():
     rag_system = HebrewRAG(GROQ_API_KEY, CHUNKS_FILE)
-    
+
     while True:
         user_input = input("\nשאלי שאלה על הקובץ (או 'exit' ליציאה): ")
         if user_input.lower() == 'exit':
             break
-            
+
         answer, sources = rag_system.generate_answer(user_input)
-        
+
         print("\n" + "="*50)
         print(f"תשובה:\n{answer}")
         print("="*50)
-        
+
         print("\nהצ'אנקים ששימשו את המודל:")
         for s in sources:
             # מדפיס את ה-ID והעמודים כפי שמופיעים ב-JSON
             print(f"- {s['chunk_id']} (ציון דמיון: {s['score']})")
+
+if __name__ == "__main__":
+    run_interactive()
